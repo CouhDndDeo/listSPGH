@@ -525,29 +525,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="box" style="margin-top: 15px;">
-                <h2>Инвентарь (1д12+1)</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 10%">№</th>
-                            <th style="width: 40%">Наименование</th>
-                            <th>Описание</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTable">
-                        <!-- Генерируется JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="box" style="margin-top: 15px;">
-                <h2>Трекеры состояний (отметьте полученные)</h2>
-                <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; font-size: 10pt;">
-                    <div id="trackersContainer"></div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -678,6 +655,31 @@
         </div>
     </div>
 
+    <!-- СТРАНИЦА 3: ИНВЕНТАРЬ -->
+    <div class="page" id="page3" data-access-level="УРОВЕНЬ ДОСТУПА: ОПЕРАТИВНИК">
+        <div class="stamp">Д.У.А.М.</div>
+        <div class="content-wrapper">
+            <h1>Личное дело № <span class="caseNumberDisplay3">9 501 0-А П -Ц Т</span></h1>
+            <p style="text-align: center; margin-top: -10px; font-size: 10pt;">(Инвентарь - Страница 3)</p>
+
+            <div class="box" style="margin-top: 15px;">
+                <h2>Инвентарь (1д12+1)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 10%">№</th>
+                            <th style="width: 40%">Наименование</th>
+                            <th>Описание</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTable">
+                        <!-- Генерируется JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Генерация случайного номера дела
         function generateCaseNumber() {
@@ -699,7 +701,7 @@
         function generateNewCase() {
             const newNumber = generateCaseNumber();
             document.getElementById('caseNumberDisplay').textContent = newNumber;
-            document.querySelectorAll('.caseNumberDisplay2').forEach(el => el.textContent = newNumber);
+            document.querySelectorAll('.caseNumberDisplay2, .caseNumberDisplay3').forEach(el => el.textContent = newNumber);
             showNotification('Сгенерирован новый номер дела: ' + newNumber);
         }
 
@@ -729,24 +731,6 @@
                     <td><input type="text" class="stat-input" style="width:100%" id="inv_desc_${i}" placeholder="Описание"></td>
                 `;
                 tbody.appendChild(row);
-            }
-        }
-
-        // Генерация трекеров
-        function generateTrackers() {
-            const container = document.getElementById('trackersContainer');
-            for (let i = 1; i <= 13; i++) {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <div>${i}.</div>
-                    <div style="display: flex; gap: 2px; justify-content: center; margin-top: 5px;">
-                        <input type="checkbox" class="tracker-input" id="tracker_${i}_1">
-                        <input type="checkbox" class="tracker-input" id="tracker_${i}_2">
-                        <input type="checkbox" class="tracker-input" id="tracker_${i}_3">
-                        <input type="checkbox" class="tracker-input" id="tracker_${i}_4">
-                    </div>
-                `;
-                container.appendChild(div);
             }
         }
 
@@ -926,7 +910,6 @@
         // Авто-сохранение при изменении
         document.addEventListener('DOMContentLoaded', function() {
             generateInventory();
-            generateTrackers();
             generateNewCase();
             
             // Отслеживание изменений уровня доступа
