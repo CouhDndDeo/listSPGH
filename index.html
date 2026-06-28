@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S.P.H.G. v.0.9 - Интерактивный лист персонажа</title>
+    <title>S.P.H.G. v.0.9 - Лист персонажа</title>
     <style>
         * {
             box-sizing: border-box;
@@ -71,7 +71,7 @@
         }
 
         .page::before {
-            content: "Д.У.А.М. | СЕКРЕТНО | УРОВЕНЬ ДОСТУПА: ОПЕРАТИВНИК";
+            content: "Д.У.А.М. | СЕКРЕТНО | " attr(data-access-level);
             position: absolute;
             top: 4mm;
             left: 0;
@@ -154,9 +154,9 @@
             background: rgba(139, 0, 0, 0.05);
         }
 
-        .photo-box {
+        .photo-container {
             width: 100%;
-            height: 130px;
+            height: 180px;
             border: 2px dashed #555;
             display: flex;
             align-items: center;
@@ -164,6 +164,39 @@
             color: #888;
             font-size: 10pt;
             background: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .photo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .photo-container.has-image img {
+            display: block;
+        }
+
+        .photo-container.has-image .photo-placeholder {
+            display: none;
+        }
+
+        .photo-upload {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: #8b0000;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 8pt;
+            border: none;
+        }
+
+        .photo-upload:hover {
+            background: #a00000;
         }
 
         table {
@@ -218,30 +251,6 @@
             text-align: center;
         }
 
-        .briefing {
-            background: #fdfbf7;
-            border: 2px solid #8b0000;
-        }
-
-        .briefing h2 {
-            color: #8b0000;
-            border-bottom: 2px solid #8b0000;
-        }
-
-        .briefing h3 {
-            border-bottom: 1px solid #8b0000;
-            color: #8b0000;
-            font-size: 10pt;
-        }
-
-        .audio-msg {
-            background: rgba(139, 0, 0, 0.05);
-            padding: 10px;
-            border-left: 3px solid #8b0000;
-            font-style: italic;
-            font-size: 10pt;
-        }
-
         .stamp {
             position: absolute;
             top: 50%;
@@ -292,13 +301,20 @@
             }
         }
 
+        .access-level-select {
+            background: #fff;
+            border: 1px solid #888;
+            padding: 3px;
+            font-family: inherit;
+        }
+
         @media print {
             body { 
                 background: none; 
                 padding: 0; 
             }
             
-            .controls, .notification { 
+            .controls, .notification, .photo-upload { 
                 display: none !important; 
             }
             
@@ -312,17 +328,21 @@
                 page-break-after: always;
             }
             
-            .briefing { 
-                page-break-before: always; 
+            .page:last-child {
+                page-break-after: auto;
             }
 
-            input {
+            input, select {
                 border: none;
                 border-bottom: 1px dotted #555;
             }
 
-            input:focus {
+            input:focus, select:focus {
                 outline: none;
+            }
+
+            .photo-container {
+                border: 1px solid #333;
             }
         }
 
@@ -353,13 +373,14 @@
         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(this)">
         <button class="btn" onclick="window.print()">🖨️ Печать</button>
         <button class="btn btn-secondary" onclick="clearForm()">🗑️ Очистить</button>
+        <button class="btn" onclick="generateNewCase()">🎲 Новый номер дела</button>
     </div>
 
-    <!-- СТРАНИЦА 1: ЛИСТ ПЕРСОНАЖА -->
-    <div class="page">
+    <!-- СТРАНИЦА 1: ИДЕНТИФИКАЦИЯ И БАЗОВЫЕ ХАРАКТЕРИСТИКИ -->
+    <div class="page" id="page1" data-access-level="УРОВЕНЬ ДОСТУПА: ОПЕРАТИВНИК">
         <div class="stamp">Д.У.А.М.</div>
         <div class="content-wrapper">
-            <h1>Личное дело № 9 501 0-А П -Ц Т</h1>
+            <h1>Личное дело № <span id="caseNumberDisplay">9 501 0-А П -Ц Т</span></h1>
             <p style="text-align: center; margin-top: -10px; font-size: 10pt;">(лист персонажа)</p>
 
             <div class="grid grid-2" style="margin-top: 20px;">
@@ -387,10 +408,30 @@
                         <label>Спец. Пометки:</label>
                         <input type="text" id="specialMarks" placeholder="Особые отметки">
                     </div>
+                    <div class="field">
+                        <label>Уровень доступа:</label>
+                        <select id="accessLevel" class="access-level-select">
+                            <option value="">Выберите уровень</option>
+                            <option value="ОБЪЕКТ Σ (СИГМА)">Объект Σ (Сигма) - Подопытный/Аномалия</option>
+                            <option value="ОБЪЕКТ Ω (ОМЕГА)">Объект Ω (Омега) - Опасная аномалия</option>
+                            <option value="НАБЛЮДАТЕЛЬ">Наблюдатель - Гражданский с доступом</option>
+                            <option value="АССИСТЕНТ">Ассистент - Младший персонал</option>
+                            <option value="ОПЕРАТИВНИК">Оперативник - Полевой агент</option>
+                            <option value="СТАРШИЙ ОПЕРАТИВНИК">Старший оперативник - Опытный агент</option>
+                            <option value="ИНСПЕКТОР">Инспектор - Надзор</option>
+                            <option value="ДИРЕКТОР ОТДЕЛА">Директор отдела - Управление</option>
+                            <option value="АРХИТЕКТОР">Архитектор - Высшее руководство</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="box">
                     <h2>Фото</h2>
-                    <div class="photo-box" id="photoPlaceholder">[ МЕСТО ДЛЯ ФОТО ]</div>
+                    <div class="photo-container" id="photoContainer">
+                        <div class="photo-placeholder">[ МЕСТО ДЛЯ ФОТО ]</div>
+                        <img id="photoImage" alt="Фото персонажа">
+                        <input type="file" id="photoInput" accept="image/*" style="display: none;" onchange="loadPhoto(event)">
+                        <button class="photo-upload" onclick="document.getElementById('photoInput').click()">Загрузить фото</button>
+                    </div>
                 </div>
             </div>
 
@@ -486,14 +527,46 @@
             </div>
 
             <div class="box" style="margin-top: 15px;">
+                <h2>Инвентарь (1д12+1)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 10%">№</th>
+                            <th style="width: 40%">Наименование</th>
+                            <th>Описание</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTable">
+                        <!-- Генерируется JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="box" style="margin-top: 15px;">
+                <h2>Трекеры состояний (отметьте полученные)</h2>
+                <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; font-size: 10pt;">
+                    <div id="trackersContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- СТРАНИЦА 2: НАВЫКИ -->
+    <div class="page" id="page2" data-access-level="УРОВЕНЬ ДОСТУПА: ОПЕРАТИВНИК">
+        <div class="stamp">Д.У.А.М.</div>
+        <div class="content-wrapper">
+            <h1>Личное дело № <span class="caseNumberDisplay2">9 501 0-А П -Ц Т</span></h1>
+            <p style="text-align: center; margin-top: -10px; font-size: 10pt;">(Навыки персонажа - Страница 2)</p>
+
+            <div class="box" style="margin-top: 15px;">
                 <h2>Навыки персонажа</h2>
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 40%;">Навык / Показатель</th>
-                            <th>Обычный</th>
-                            <th>Сложный</th>
-                            <th>Чрезвычайный</th>
+                            <th style="width: 45%;">Навык / Показатель</th>
+                            <th>Обычный<br><small>(1)</small></th>
+                            <th>Сложный<br><small>(1/2)</small></th>
+                            <th>Чрезвычайный<br><small>(1/5)</small></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -602,92 +675,49 @@
                     </tbody>
                 </table>
             </div>
-
-            <div class="box" style="margin-top: 15px;">
-                <h2>Инвентарь (1д12+1)</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 10%">№</th>
-                            <th style="width: 40%">Наименование</th>
-                            <th>Описание</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTable">
-                        <!-- Генерируется JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="box" style="margin-top: 15px;">
-                <h2>Трекеры состояний (отметьте полученные)</h2>
-                <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; font-size: 10pt;">
-                    <!-- Генерируется JavaScript -->
-                    <div id="trackersContainer"></div>
-                </div>
-            </div>
         </div>
-    </div>
-
-    <!-- СТРАНИЦА 2: ФАЙЛ №1 (БРИФИНГ) -->
-    <div class="page briefing">
-        <h2>Файл №1</h2>
-        <p style="text-align: center; font-weight: bold; color: #8b0000;">[Ситуационный брифинг | Уровень доступа: Оперативник] Д.У.А.М.</p>
-        
-        <div class="grid grid-2" style="margin-top: 15px;">
-            <div><strong>Код операции:</strong> «Город-Призрак»</div>
-            <div><strong>Статус угрозы:</strong> Высокий (класс Σ-7)</div>
-        </div>
-
-        <h3>Задача отряда:</h3>
-        <p>Выдвинуться в закрытый район города Новоархарска, где зафиксирована полная аномальная изоляция — связь с гражданскими и группами реагирования потеряна. По данным разведки, все население подверглось массовому зомбированию неизвестной этиологии. Причины заражения пока не установлены.</p>
-
-        <h3>Цель миссии:</h3>
-        <ul>
-            <li>Выявить источник аномального воздействия;</li>
-            <li>Локализовать или уничтожить первичный очаг;</li>
-            <li>Собрать образцы для анализа;</li>
-            <li>В случае необходимости — эвакуировать выживших.</li>
-        </ul>
-
-        <h3>Особые указания:</h3>
-        <p>Носители находятся в состоянии кататонии или повышенной агрессии. Контакт с объектами запрещён без предварительного сканирования на аномальную активность. Использовать специальные боеприпасы и защитные поля Д.У.А.М. категории «Эхо».</p>
-
-        <h3>Вооружение рекомендовано:</h3>
-        <ul>
-            <li>Короткостволы с противоаномальной начинкой;</li>
-            <li>Сканирующие дроны;</li>
-            <li>Эмпатические шлемы для определения сохранившегося сознания среди инфицированных.</li>
-        </ul>
-
-        <div class="grid grid-3" style="margin-top: 15px; font-size: 10pt;">
-            <div><strong>Время старта:</strong> 04:47</div>
-            <div><strong>Температура:</strong> -3°C</div>
-            <div><strong>Лунный цикл:</strong> Растущая</div>
-        </div>
-
-        <div class="box" style="margin-top: 15px; border-color: #8b0000; background: rgba(139,0,0,0.05);">
-            <strong>Примечание от аналитика:</strong> Не входите в здание старой телефонной станции без прикрытия. Там фиксируется энергофон, напоминающий человеческий плач.
-        </div>
-
-        <h3 style="margin-top: 20px;">Аудио сообщение Офицер Р. А. Грив:</h3>
-        <div class="audio-msg">
-            <p>«Всем внимание. Это не учения. Повторяю — это не учения. Мы получили сигналы тревоги из Новоархарска три дня назад. После этого тишина. Ни гражданской связи, ни наших групп. Только радиоэхо и один видеосигнал… который мы не будем показывать. Поверьте, лучше не видеть.</p>
-            <p>Население города полностью парализовано. Не просто больные — это аномальное заражение массового масштаба. Люди в состоянии зомбирования, но это не классическая инфекция. Сканеры фиксируют следы разумного воздействия. Что-то или кто-то управляет этим.</p>
-            <p>Ваша задача — пробиться к центральному району, найти источник аномалии и локализовать угрозу. Если есть шанс спасти хоть кого-то — используйте его. Но помните: если заражённый приходит в контакт с вашей кровью, вы автоматически отстраняетесь от операции, без звания, без отпуска, без имени. Устранение оперативника на месте без суда и следственных мероприятий. Это не обсуждается.</p>
-            <p>Экипировка проверена. Боезапас соответствует протоколу «Эхо». Используйте дроны для разведки. Не входите в здания без сканирования. Особенно — старую телефонную станцию. Там энергофон, он напоминает человеческий плач. Не шучу. Вы — лучшие из того, что у нас осталось. Мы не знаем, что вас ждёт внутри. Но одно ясно точно — если вы не справитесь, это выйдет наружу. И тогда уже некому будет отправить следующий отряд.</p>
-            <p>Удачи. Бог или кто там ещё в аномальных мирах — пусть будет с вами.»</p>
-        </div>
-
-        <p style="margin-top: 20px; text-align: center; font-weight: bold;">
-            Сообщение заканчивается, а сигналы тревоги настойчиво приглашают ваш сплочённый отряд сесть в вездеход МШК-14 и направиться на задание.
-        </p>
-        <p style="text-align: center; font-size: 14pt; margin-top: 20px; color: #8b0000; font-weight: bold;">
-            Увидимся на игре!
-        </p>
     </div>
 
     <script>
+        // Генерация случайного номера дела
+        function generateCaseNumber() {
+            const chars = '0123456789АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩ';
+            let number = '';
+            
+            // Формат: X XXX X-X X -X X
+            number += Math.floor(Math.random() * 10) + ' ';
+            number += Math.floor(Math.random() * 1000).toString().padStart(3, '0') + ' ';
+            number += Math.floor(Math.random() * 10) + '-';
+            number += chars[Math.floor(Math.random() * chars.length)] + ' ';
+            number += chars[Math.floor(Math.random() * chars.length)] + ' -';
+            number += chars[Math.floor(Math.random() * chars.length)] + ' ' + chars[Math.floor(Math.random() * chars.length)];
+            
+            return number;
+        }
+
+        // Генерация нового номера дела
+        function generateNewCase() {
+            const newNumber = generateCaseNumber();
+            document.getElementById('caseNumberDisplay').textContent = newNumber;
+            document.querySelectorAll('.caseNumberDisplay2').forEach(el => el.textContent = newNumber);
+            showNotification('Сгенерирован новый номер дела: ' + newNumber);
+        }
+
+        // Загрузка фото
+        function loadPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('photoImage');
+                    const container = document.getElementById('photoContainer');
+                    img.src = e.target.result;
+                    container.classList.add('has-image');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         // Генерация инвентаря
         function generateInventory() {
             const tbody = document.getElementById('inventoryTable');
@@ -730,17 +760,36 @@
             }, 3000);
         }
 
+        // Обновление уровня доступа в шапке
+        function updateAccessLevelHeader() {
+            const select = document.getElementById('accessLevel');
+            const selectedText = select.options[select.selectedIndex].text;
+            const accessLevel = select.value || 'УРОВЕНЬ ДОСТУПА: ОПЕРАТИВНИК';
+            document.querySelectorAll('.page').forEach(page => {
+                page.setAttribute('data-access-level', accessLevel);
+            });
+        }
+
         // Сохранение в localStorage
         function saveCharacter() {
             const data = {};
-            const inputs = document.querySelectorAll('input');
+            const inputs = document.querySelectorAll('input, select');
             inputs.forEach(input => {
                 if (input.type === 'checkbox') {
                     data[input.id] = input.checked;
+                } else if (input.type === 'file') {
+                    // Пропускаем file inputs
                 } else {
                     data[input.id] = input.value;
                 }
             });
+            
+            // Сохраняем фото
+            const img = document.getElementById('photoImage');
+            if (img.src && img.src.startsWith('data:')) {
+                data.photoData = img.src;
+            }
+            
             localStorage.setItem('sphg_character', JSON.stringify(data));
             showNotification('Персонаж сохранён!');
         }
@@ -755,11 +804,23 @@
                     if (element) {
                         if (element.type === 'checkbox') {
                             element.checked = data[key];
+                        } else if (element.tagName === 'SELECT') {
+                            element.value = data[key];
+                            updateAccessLevelHeader();
                         } else {
                             element.value = data[key];
                         }
                     }
                 });
+                
+                // Загрузка фото
+                if (data.photoData) {
+                    const img = document.getElementById('photoImage');
+                    const container = document.getElementById('photoContainer');
+                    img.src = data.photoData;
+                    container.classList.add('has-image');
+                }
+                
                 showNotification('Персонаж загружен!');
             } else {
                 showNotification('Нет сохранённых данных');
@@ -769,14 +830,22 @@
         // Экспорт в JSON файл
         function exportJSON() {
             const data = {};
-            const inputs = document.querySelectorAll('input');
+            const inputs = document.querySelectorAll('input, select');
             inputs.forEach(input => {
                 if (input.type === 'checkbox') {
                     data[input.id] = input.checked;
+                } else if (input.type === 'file') {
+                    // Пропускаем file inputs
                 } else {
                     data[input.id] = input.value;
                 }
             });
+            
+            // Добавляем фото
+            const img = document.getElementById('photoImage');
+            if (img.src && img.src.startsWith('data:')) {
+                data.photoData = img.src;
+            }
             
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -802,11 +871,23 @@
                         if (element) {
                             if (element.type === 'checkbox') {
                                 element.checked = data[key];
+                            } else if (element.tagName === 'SELECT') {
+                                element.value = data[key];
+                                updateAccessLevelHeader();
                             } else {
                                 element.value = data[key];
                             }
                         }
                     });
+                    
+                    // Загрузка фото
+                    if (data.photoData) {
+                        const img = document.getElementById('photoImage');
+                        const container = document.getElementById('photoContainer');
+                        img.src = data.photoData;
+                        container.classList.add('has-image');
+                    }
+                    
                     showNotification('Импорт выполнен успешно!');
                 } catch (err) {
                     showNotification('Ошибка импорта файла');
@@ -820,14 +901,24 @@
         // Очистка формы
         function clearForm() {
             if (confirm('Вы уверены, что хотите очистить все поля?')) {
-                const inputs = document.querySelectorAll('input');
+                const inputs = document.querySelectorAll('input, select');
                 inputs.forEach(input => {
                     if (input.type === 'checkbox') {
                         input.checked = false;
-                    } else {
+                    } else if (input.type !== 'file') {
                         input.value = '';
                     }
                 });
+                
+                // Сброс фото
+                const img = document.getElementById('photoImage');
+                const container = document.getElementById('photoContainer');
+                img.src = '';
+                container.classList.remove('has-image');
+                
+                // Генерация нового номера
+                generateNewCase();
+                
                 showNotification('Форма очищена');
             }
         }
@@ -836,12 +927,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             generateInventory();
             generateTrackers();
+            generateNewCase();
+            
+            // Отслеживание изменений уровня доступа
+            document.getElementById('accessLevel').addEventListener('change', updateAccessLevelHeader);
             
             // Авто-сохранение каждые 30 секунд
             setInterval(saveCharacter, 30000);
             
             // Загрузка при старте если есть сохранение
-            loadCharacter();
+            // loadCharacter(); // Закомментировано, чтобы не загружать автоматически
         });
     </script>
 </body>
